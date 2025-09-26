@@ -1,0 +1,20 @@
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "Node",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "baseUrl": ".",
+    "paths": {
+      "@repo/store/*": ["packages/store/*"],
+      "@repo/types/*": ["packages/types/*"],
+      "@repo/lib": ["packages/lib/index.ts"],     // 👈 add this line
+      "@repo/lib/*": ["packages/lib/*"],          
+      "@repo/ui": ["packages/ui/src/index.ts"],
+      "@repo/ui/*": ["packages/ui/src/*"]
+    }
+  }
+}

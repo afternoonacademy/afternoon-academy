@@ -1,0 +1,39 @@
+{
+  "name": "supplydropp-monorepo",
+  "private": true,
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "lint": "turbo run lint",
+    "format": "prettier --write \"**/*.{ts,tsx,md}\"",
+    "check-types": "turbo run check-types"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "devDependencies": {
+    "babel-plugin-module-resolver": "^5.0.2",
+    "prettier": "^3.6.2",
+    "turbo": "^2.5.6",
+    "typescript": "5.9.2"
+  },
+  "dependencies": {
+    "appwrite": "^20.0.0",
+    "nativewind": "^4.2.0",
+    "postcss": "^8.5.6",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "react-native-appwrite": "^0.13.0",
+    "react-test-renderer": "19.1.0",
+    "tailwindcss": "^3.4.17",
+    "zustand": "^5.0.8"
+  },
+  "resolutions": {
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "react-test-renderer": "19.1.0",
+    "react-native-renderer": "19.1.0",
+    "react-native": "0.81.4"
+  }
+}

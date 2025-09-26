@@ -1,0 +1,10 @@
+{
+  "name": "@repo/lib",
+  "exports": {
+    ".": {
+      "import": "./appwrite.web.ts",
+      "require": "./appwrite.web.ts",
+      "react-native": "./appwrite.native.ts"
+    }
+  }
+}
