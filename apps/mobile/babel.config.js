@@ -1,23 +1,22 @@
+// apps/mobile/babel.config.js
 module.exports = function (api) {
   api.cache(true);
   return {
     presets: [
       ["babel-preset-expo", { jsxImportSource: "nativewind" }],
-      "nativewind/babel"
+      // 👇 NativeWind works as a preset in SDK 50+
+      "nativewind/babel",
     ],
     plugins: [
+      "react-native-reanimated/plugin", // must be last
       [
         "module-resolver",
         {
           alias: {
-            "@repo/store": "../../packages/store",
-            "@repo/types": "../../packages/types",
-            "@repo/lib": "../../packages/lib",
-            "@repo/ui": "../../packages/ui/src",
-            "@": "./"
-          }
-        }
-      ]
-    ]
+            "@": "./", // resolves "@/..." imports
+          },
+        },
+      ],
+    ],
   };
 };

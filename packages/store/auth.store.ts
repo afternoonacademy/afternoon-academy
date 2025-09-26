@@ -1,8 +1,8 @@
-console.log("🟢 Auth store loaded on web");
+"use client";
 
 import { create } from "zustand";
+import { supabase } from "@repo/lib/supabase.client";
 import type { User } from "@repo/types";
-import { account, getCurrentUser, signOut } from "@repo/lib/appwrite";
 
 type AuthState = {
   isAuthenticated: boolean;
@@ -10,13 +10,15 @@ type AuthState = {
   isLoading: boolean;
 
   isAdmin: () => boolean;
-  isHost: () => boolean;
+  isParent: () => boolean;
+  isStudent: () => boolean;
+  isTeacher: () => boolean;
 
   setIsAuthenticated: (value: boolean) => void;
   setUser: (user: User | null) => void;
   setLoading: (loading: boolean) => void;
 
-  fetchAuthenticatedUser: () => Promise<void>;
+  fetchAuthenticatedUser: (force?: boolean) => Promise<void>;
   logout: () => Promise<void>;
 };
 
@@ -26,56 +28,75 @@ const useAuthStore = create<AuthState>((set, get) => ({
   isLoading: true,
 
   isAdmin: () => get().user?.role === "admin",
-  isHost: () => {
-    const role = get().user?.role ?? "guest";
-    return role === "host" || role === "admin";
-  },
+  isParent: () => get().user?.role === "parent",
+  isStudent: () => get().user?.role === "student",
+  isTeacher: () => get().user?.role === "teacher",
 
   setIsAuthenticated: (value) => set({ isAuthenticated: value }),
   setUser: (user) => set({ user }),
   setLoading: (value) => set({ isLoading: value }),
 
-  fetchAuthenticatedUser: async () => {
-    console.log("🟡 fetchAuthenticatedUser called");
+  fetchAuthenticatedUser: async (force = false) => {
+    console.log("🟡 [AuthStore] fetchAuthenticatedUser called");
     set({ isLoading: true });
+
     try {
-      console.log("🔍 Calling account.get()");
-      const me = await account.get().catch((err) => {
-        console.warn("⚠️ account.get() failed:", err);
-        return null;
-      });
-      console.log("🔍 account.get result:", me);
+      // 🔹 Get current auth session
+      const { data: sessionData, error: sessionError } = await supabase.auth.getUser();
 
-      if (!me) {
-        console.log("❌ No active session");
+      if (sessionError || !sessionData?.user) {
+        console.warn("❌ [AuthStore] No active session", sessionError);
         set({ isAuthenticated: false, user: null });
-      } else {
-        console.log("✅ Session found, fetching user profile");
-        const profile = await getCurrentUser().catch((err) => {
-          console.warn("⚠️ getCurrentUser failed:", err);
-          return null;
-        });
-        console.log("🔍 getCurrentUser result:", profile);
-
-        set({ isAuthenticated: true, user: (profile as User) ?? null });
+        return;
       }
+
+      const authUser = sessionData.user;
+      console.log("✅ [AuthStore] Auth user loaded:", authUser);
+
+      // 🔹 Get extended profile from users table
+      const { data: profile, error: profileError } = await supabase
+        .from("users")
+        .select("*")
+        .eq("id", authUser.id)
+        .single();
+
+      if (profileError) {
+        console.warn("⚠️ [AuthStore] Failed to load user profile:", profileError);
+      }
+
+      // 🔹 Merge into a single object
+      const mergedUser: User = {
+        id: authUser.id,
+        email: authUser.email ?? "",
+        name:
+          profile?.name ??
+          (authUser.user_metadata?.name as string | undefined) ??
+          "",
+        role:
+          profile?.role ??
+          (authUser.user_metadata?.role as string | undefined) ??
+          "parent",
+        created_at: profile?.created_at ?? authUser.created_at,
+      };
+
+      console.log("✅ [AuthStore] Final merged user:", mergedUser);
+
+      set({ isAuthenticated: true, user: mergedUser });
     } catch (e) {
-      console.error("fetchAuthenticatedUser error", e);
+      console.error("❌ [AuthStore] fetchAuthenticatedUser error:", e);
       set({ isAuthenticated: false, user: null });
     } finally {
-      console.log("⏳ Done running fetchAuthenticatedUser");
       set({ isLoading: false });
     }
   },
 
   logout: async () => {
     try {
-      console.log("🔍 Logging out via Appwrite");
-      await signOut();
+      await supabase.auth.signOut();
     } catch (e) {
-      console.warn("⚠️ Logout failed (safe to ignore if no active session):", e);
+      console.warn("⚠️ [AuthStore] Logout failed:", e);
     } finally {
-      console.log("✅ Auth state cleared after logout");
+      console.log("✅ [AuthStore] Cleared auth state");
       set({ isAuthenticated: false, user: null });
     }
   },

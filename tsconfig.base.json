@@ -7,14 +7,24 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
+
     "baseUrl": ".",
     "paths": {
       "@repo/store/*": ["packages/store/*"],
       "@repo/types/*": ["packages/types/*"],
-      "@repo/lib": ["packages/lib/index.ts"],     // 👈 add this line
-      "@repo/lib/*": ["packages/lib/*"],          
+
+      // lib package (entry + deep imports)
+      "@repo/lib": ["packages/lib/index.ts"],
+      "@repo/lib/*": ["packages/lib/*"],
+
+      // ui package (entry + deep imports)
       "@repo/ui": ["packages/ui/src/index.ts"],
-      "@repo/ui/*": ["packages/ui/src/*"]
+      "@repo/ui/*": ["packages/ui/src/*"],
+
+      // config package (entry + deep imports)
+      "@repo/config": ["packages/config/index.ts"],
+      "@repo/config/*": ["packages/config/*"]
     }
-  }
+  },
+  "include": ["apps", "packages"]
 }

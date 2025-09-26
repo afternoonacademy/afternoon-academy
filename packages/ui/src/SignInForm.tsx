@@ -1,12 +1,18 @@
+// packages/ui/src/SignInForm.tsx
+
 import React, { useState } from "react";
-import { View, Text } from "react-native";
-import { TextInput, Button } from "@repo/ui";
+import { View } from "react-native";
+import { TextInput } from "./TextInput";
+import { Button } from "./button";
+
 
 type Props = {
   onSubmit: (email: string, password: string) => Promise<void>;
+  loading?: boolean;
+  footer?: React.ReactNode;
 };
 
-export function SignInForm({ onSubmit }: Props) {
+export function SignInForm({ onSubmit, loading, footer }: Props) {
   const [form, setForm] = useState({ email: "", password: "" });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -20,17 +26,17 @@ export function SignInForm({ onSubmit }: Props) {
     setIsSubmitting(true);
     try {
       await onSubmit(form.email.trim().toLowerCase(), form.password);
-    } catch (err: any) {
-      alert(err?.message ?? "Sign-in failed");
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : "Sign-in failed");
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <View className="gap-6 bg-white rounded-lg p-5 mt-5 w-full max-w-md">
+    <View className="gap-4 bg-white rounded-lg p-5 w-full max-w-md">
       <TextInput
-        placeholder="Enter your email"
+        placeholder="Email"
         value={form.email}
         onChangeText={(t) => setForm((p) => ({ ...p, email: t }))}
         label="Email"
@@ -38,19 +44,17 @@ export function SignInForm({ onSubmit }: Props) {
         autoCapitalize="none"
       />
       <TextInput
-        placeholder="Enter your password"
+        placeholder="Password"
         value={form.password}
         onChangeText={(t) => setForm((p) => ({ ...p, password: t }))}
         label="Password"
         secureTextEntry
       />
-      <Button onPress={handleSubmit} disabled={isSubmitting}>
-        {isSubmitting ? "Loading..." : "Sign In"}
+      <Button onPress={handleSubmit} disabled={loading || isSubmitting}>
+        {loading || isSubmitting ? "Loading..." : "Sign In"}
       </Button>
-      <View className="flex flex-row justify-center gap-2 mt-3">
-        <Text className="text-gray-600">Don’t have an account?</Text>
-        <Text className="font-semibold text-blue-500">Sign Up</Text>
-      </View>
+
+      {footer && <View className="mt-3">{footer}</View>}
     </View>
   );
 }

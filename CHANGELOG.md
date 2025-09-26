@@ -1,15 +1,13 @@
 # Changelog
 
-## [0.2.0] - 2025-09-12
+## [0.1.0] - 2025-09-26
 ### Added
-- Debug logging for full auth cycle (login, fetch user, logout) on web.
-- Redirect logic for unauthenticated web sessions.
-
-### Fixed
-- Web stuck in loading state due to missing Appwrite exports.
-- Web login not redirecting after successful sign-in.
-- Export conflicts between `appwrite.web.ts` and `appwrite.native.ts`.
+- Bootstrapped new `afternoon-academy` monorepo from SupplyDropp baseline.
+- Integrated Supabase for authentication across web and mobile.
+- Implemented sign-up, sign-in, auth callback flows with role-based redirects.
+- Added temporary dashboards for **Admin, Parent, Student, Teacher** roles.
+- Verified both **Next.js web app** and **Expo mobile app** run successfully with Supabase auth.
 
 ### Notes
-- Mobile auth flow remains unchanged and stable.
-- Both platforms now share consistent logout behaviour and debug logs.
+- Current dashboards are placeholders and will be replaced with functional UI.  
+- Both apps share Tailwind/NativeWind styling with unified developer workflow.  
