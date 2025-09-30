@@ -36,13 +36,14 @@ const useAuthStore = create<AuthState>((set, get) => ({
   setUser: (user) => set({ user }),
   setLoading: (value) => set({ isLoading: value }),
 
-  fetchAuthenticatedUser: async (force = false) => {
+  fetchAuthenticatedUser: async () => {
     console.log("🟡 [AuthStore] fetchAuthenticatedUser called");
     set({ isLoading: true });
 
     try {
       // 🔹 Get current auth session
-      const { data: sessionData, error: sessionError } = await supabase.auth.getUser();
+      const { data: sessionData, error: sessionError } =
+        await supabase.auth.getUser();
 
       if (sessionError || !sessionData?.user) {
         console.warn("❌ [AuthStore] No active session", sessionError);
@@ -76,7 +77,7 @@ const useAuthStore = create<AuthState>((set, get) => ({
           profile?.role ??
           (authUser.user_metadata?.role as string | undefined) ??
           "parent",
-        created_at: profile?.created_at ?? authUser.created_at,
+        created_at: profile?.created_at ?? undefined, // ✅ matches new type
       };
 
       console.log("✅ [AuthStore] Final merged user:", mergedUser);

@@ -1,45 +1,65 @@
 import { supabase } from "./supabase.client";
+import type { User, Role } from "@repo/types";
 
-export async function ensureUserInDb(authUser: { id: string; email?: string; user_metadata?: any }, role?: "admin" | "parent" | "student" | "teacher") {
+/**
+ * Ensure a user exists in the public.users table.
+ * - If the user exists → returns the row.
+ * - If not, inserts a new row with sensible defaults.
+ */
+export async function ensureUserInDb(
+  authUser: { id: string; email?: string; user_metadata?: any },
+  roleOverride?: Role
+): Promise<User> {
   if (!authUser?.id) {
-    throw new Error("❌ No auth user provided");
+    throw new Error("❌ ensureUserInDb: No auth user provided");
   }
 
-  // 1. Check if already exists
+  // 1️⃣ Check if already exists
   const { data: existingUser, error: fetchError } = await supabase
     .from("users")
     .select("*")
     .eq("id", authUser.id)
-    .single();
+    .maybeSingle(); // ✅ won’t throw if row missing
 
-  if (!fetchError && existingUser) {
-    console.log("ℹ️ [ensureUserInDb] User already exists:", existingUser.id);
-    return existingUser;
+  if (fetchError) {
+    console.error("⚠️ ensureUserInDb: fetchError", fetchError.message);
+    throw fetchError;
   }
 
-  // 2. Default role = parent
-  const finalRole: "admin" | "parent" | "student" | "teacher" =
-    role ??
-    (authUser.user_metadata?.role as "admin" | "parent" | "student" | "teacher") ??
-    "parent";
+  if (existingUser) {
+    console.log("ℹ️ ensureUserInDb: user already exists →", existingUser.email);
+    return existingUser as User;
+  }
 
-  // 3. Insert new row
-  const { data, error } = await supabase
+  // 2️⃣ Compute role
+  const finalRole: Role =
+    roleOverride ??
+    (authUser.user_metadata?.role as Role) ??
+    "parent"; // default role = parent
+
+  // 3️⃣ Insert new user
+  const newUser = {
+    id: authUser.id,
+    email: authUser.email ?? "",
+    name:
+      authUser.user_metadata?.name ??
+      authUser.email?.split("@")[0] ??
+      "New User",
+    role: finalRole,
+    created_at: new Date().toISOString(), // ✅ always set
+  };
+
+  const { data, error: insertError } = await supabase
     .from("users")
-    .insert({
-      id: authUser.id,
-      email: authUser.email ?? "",
-      name: authUser.user_metadata?.name ?? authUser.email?.split("@")[0] ?? "New User",
-      role: finalRole,
-    })
+    .insert(newUser)
     .select()
     .single();
 
-  if (error) {
-    console.error("❌ [ensureUserInDb] Error inserting user:", error.message);
-    throw error;
+  if (insertError) {
+    console.error("❌ ensureUserInDb: insertError", insertError.message);
+    throw insertError;
   }
 
-  console.log("✅ [ensureUserInDb] User created in DB:", data.id);
-  return data;
+  console.log("✅ ensureUserInDb: user created →", data.email);
+  return data as User;
 }

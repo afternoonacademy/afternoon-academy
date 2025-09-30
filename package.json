@@ -14,18 +14,27 @@
   ],
   "devDependencies": {
     "babel-plugin-module-resolver": "^5.0.2",
+    "dotenv": "^17.2.2",
     "dotenv-cli": "^10.0.0",
     "prettier": "^3.6.2",
     "turbo": "^2.5.6",
     "typescript": "5.9.2"
   },
   "dependencies": {
+    "@fullcalendar/daygrid": "^6.1.19",
+    "@fullcalendar/interaction": "^6.1.19",
+    "@fullcalendar/react": "^6.1.19",
+    "@fullcalendar/timegrid": "^6.1.19",
+    "@headlessui/react": "^2.2.9",
+    "@heroicons/react": "^2.2.0",
     "@supabase/supabase-js": "^2.58.0",
     "lucide-react-native": "^0.544.0",
-    "nativewind": "^4.2.0",
+    "nativewind": "^4.2.1",
     "postcss": "^8.5.6",
+    "preact": "^10.27.2",
     "react": "19.1.0",
     "react-dom": "19.1.0",
+    "react-native-web": "^0.21.1",
     "react-test-renderer": "19.1.0",
     "tailwindcss": "^3.4.17",
     "zustand": "^5.0.8"

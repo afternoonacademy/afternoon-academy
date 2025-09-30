@@ -1,3 +1,184 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* ============================
+   FullCalendar Core Variables
+   ============================ */
+:root {
+  --fc-small-font-size: .85em;
+  --fc-page-bg-color: #fff;
+  --fc-neutral-bg-color: rgba(208, 208, 208, 0.3);
+  --fc-neutral-text-color: #808080;
+  --fc-border-color: #ddd;
+
+  --fc-button-text-color: #fff;
+  --fc-button-bg-color: #2C3E50;
+  --fc-button-border-color: #2C3E50;
+  --fc-button-hover-bg-color: #1e2b37;
+  --fc-button-hover-border-color: #1a252f;
+  --fc-button-active-bg-color: #1a252f;
+  --fc-button-active-border-color: #151e27;
+
+  --fc-event-bg-color: #3788d8;
+  --fc-event-border-color: #3788d8;
+  --fc-event-text-color: #fff;
+  --fc-event-selected-overlay-color: rgba(0, 0, 0, 0.25);
+
+  --fc-more-link-bg-color: #d0d0d0;
+  --fc-more-link-text-color: inherit;
+
+  --fc-non-business-color: rgba(215, 215, 215, 0.3);
+  --fc-bg-event-color: rgb(143, 223, 130);
+  --fc-bg-event-opacity: 0.3;
+  --fc-highlight-color: rgba(188, 232, 241, 0.3);
+  --fc-today-bg-color: rgba(255, 220, 40, 0.15);
+  --fc-now-indicator-color: red;
+}
+
+/* ============================
+   Base FC Layout
+   ============================ */
+.fc {
+  display: flex;
+  flex-direction: column;
+  font-size: 1em;
+}
+
+.fc, .fc *, .fc *:before, .fc *:after {
+  box-sizing: border-box;
+}
+
+.fc table {
+  border-collapse: collapse;
+  border-spacing: 0;
+  font-size: 1em;
+  width: 100%;
+  table-layout: fixed;
+}
+
+.fc th {
+  text-align: center;
+}
+
+.fc th, .fc td {
+  vertical-align: top;
+  padding: 0;
+  border: 1px solid var(--fc-border-color);
+}
+
+/* ============================
+   ScrollGrid (core layout)
+   ============================ */
+.fc-scrollgrid {
+  border: 1px solid var(--fc-border-color);
+  border-collapse: separate;
+  border-right-width: 0;
+  border-bottom-width: 0;
+}
+
+.fc-scrollgrid-section > * {
+  border-top-width: 0;
+  border-left-width: 0;
+}
+
+.fc-scrollgrid-section-header > * {
+  border-bottom-width: 0;
+}
+
+.fc-scrollgrid-section-body table {
+  border-bottom-style: hidden;
+}
+
+/* Sticky headers */
+.fc-scrollgrid-section-sticky > * {
+  background: var(--fc-page-bg-color);
+  position: sticky;
+  z-index: 3;
+}
+
+.fc-scrollgrid-section-header.fc-scrollgrid-section-sticky > * {
+  top: 0;
+}
+
+/* ============================
+   Scroller
+   ============================ */
+.fc-scroller {
+  -webkit-overflow-scrolling: touch;
+  position: relative;
+}
+
+.fc-scroller-liquid {
+  height: 100%;
+}
+
+.fc-scroller-liquid-absolute {
+  position: absolute;
+  top: 0; right: 0; left: 0; bottom: 0;
+}
+
+/* ============================
+   Events
+   ============================ */
+.fc-h-event {
+  display: block;
+  border: 1px solid var(--fc-event-border-color);
+  background-color: var(--fc-event-bg-color);
+  border-radius: 3px;
+  font-size: var(--fc-small-font-size);
+  color: var(--fc-event-text-color);
+  padding: 2px 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.fc-h-event .fc-event-title {
+  font-weight: 500;
+}
+
+/* ============================
+   Toolbar
+   ============================ */
+.fc-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.fc-toolbar-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.fc-button {
+  display: inline-block;
+  font-weight: 400;
+  text-align: center;
+  vertical-align: middle;
+  user-select: none;
+  background-color: transparent;
+  border: 1px solid transparent;
+  padding: 0.4em 0.65em;
+  font-size: 1em;
+  line-height: 1.5;
+  border-radius: 0.25em;
+  cursor: pointer;
+}
+
+.fc-button-primary {
+  color: var(--fc-button-text-color);
+  background-color: var(--fc-button-bg-color);
+  border-color: var(--fc-button-border-color);
+}
+
+.fc-button-primary:hover {
+  background-color: var(--fc-button-hover-bg-color);
+  border-color: var(--fc-button-hover-border-color);
+}
+
+.fc-button-primary:active {
+  background-color: var(--fc-button-active-bg-color);
+  border-color: var(--fc-button-active-border-color);
+}

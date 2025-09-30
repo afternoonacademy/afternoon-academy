@@ -13,17 +13,23 @@
       "@repo/store/*": ["packages/store/*"],
       "@repo/types/*": ["packages/types/*"],
 
-      // lib package (entry + deep imports)
       "@repo/lib": ["packages/lib/index.ts"],
       "@repo/lib/*": ["packages/lib/*"],
 
-      // ui package (entry + deep imports)
+      "@repo/hooks/*": ["packages/hooks/*"],
+
       "@repo/ui": ["packages/ui/src/index.ts"],
       "@repo/ui/*": ["packages/ui/src/*"],
 
-      // config package (entry + deep imports)
       "@repo/config": ["packages/config/index.ts"],
-      "@repo/config/*": ["packages/config/*"]
+      "@repo/config/*": ["packages/config/*"],
+
+      "@repo/scheduler": ["packages/scheduler/index.ts"],
+      "@repo/scheduler/*": ["packages/scheduler/*"],
+
+      // 👉 maps @/ to the web app root
+      "@/*": ["apps/web/*"],
+      "@components/*": ["apps/web/components/*"]
     }
   },
   "include": ["apps", "packages"]

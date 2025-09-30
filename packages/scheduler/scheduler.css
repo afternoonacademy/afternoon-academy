@@ -1,0 +1,102 @@
+:root {
+  --fc-small-font-size: .85em;
+  --fc-page-bg-color: #fff;
+  --fc-neutral-bg-color: rgba(208, 208, 208, 0.3);
+  --fc-neutral-text-color: #808080;
+  --fc-border-color: #ddd;
+  --fc-button-text-color: #fff;
+  --fc-button-bg-color: #2C3E50;
+  --fc-button-border-color: #2C3E50;
+  --fc-button-hover-bg-color: #1e2b37;
+  --fc-button-hover-border-color: #1a252f;
+  --fc-button-active-bg-color: #1a252f;
+  --fc-button-active-border-color: #151e27;
+  --fc-event-bg-color: #3788d8;
+  --fc-event-border-color: #3788d8;
+  --fc-event-text-color: #fff;
+  --fc-event-selected-overlay-color: rgba(0, 0, 0, 0.25);
+}
+
+/* Base */
+.fc {
+  display: flex;
+  flex-direction: column;
+  font-size: 1em;
+}
+.fc table {
+  border-collapse: collapse;
+  border-spacing: 0;
+  font-size: 1em;
+  width: 100%;
+  table-layout: fixed;
+}
+.fc th,
+.fc td {
+  border: 1px solid var(--fc-border-color);
+  vertical-align: top;
+  padding: 0;
+}
+
+/* Toolbar */
+.fc-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: .5em;
+}
+.fc-toolbar-title {
+  font-size: 1.25em;
+}
+.fc-button-group {
+  display: inline-flex;
+}
+.fc-button {
+  border: 1px solid var(--fc-button-border-color);
+  background-color: var(--fc-button-bg-color);
+  color: var(--fc-button-text-color);
+  padding: .25em .5em;
+  cursor: pointer;
+}
+.fc-button:hover {
+  background-color: var(--fc-button-hover-bg-color);
+}
+.fc-button-active {
+  background-color: var(--fc-button-active-bg-color);
+}
+
+/* Scrollgrid */
+.fc-scrollgrid {
+  width: 100%;
+  border: 1px solid var(--fc-border-color);
+}
+.fc-col-header-cell {
+  text-align: center;
+  font-weight: 500;
+  padding: 4px;
+  background: #f9f9f9;
+}
+.fc-col-header-cell-cushion {
+  display: inline-block;
+  padding: 2px 4px;
+}
+
+/* Events */
+.fc-h-event {
+  display: block;
+  border: 1px solid var(--fc-event-border-color);
+  background-color: var(--fc-event-bg-color);
+  border-radius: 3px;
+  padding: 2px;
+  color: var(--fc-event-text-color);
+  font-size: var(--fc-small-font-size);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.fc-event-main {
+  position: relative;
+  z-index: 2;
+}
+.fc-event-title {
+  font-weight: 500;
+}
