@@ -11,3 +11,63 @@
 ### Notes
 - Current dashboards are placeholders and will be replaced with functional UI.  
 - Both apps share Tailwind/NativeWind styling with unified developer workflow.  
+
+## [0.2.0] - 2025-09-30
+### Added
+- **Admin Dashboard** with KPI cards (Users, Subjects, Reports).
+- **Users Management**:  
+  - View all users (parents, teachers, students).  
+  - Add teachers (creates in `auth.users` + `public.users`).  
+  - Delete teachers (syncs across tables).  
+- **Subjects**: create/edit with safe delete protection.  
+- **Sessions**:  
+  - Linked to subjects, teachers, venues.  
+  - Capacity support added.  
+  - Can be created without teacher assignment (flexible scheduling).  
+- **Venues**:  
+  - New `venues` table (name, address, capacity).  
+  - Seeded coworking spaces (WeWork, Spaces, Impact Hub).  
+  - Management page with modal for add/edit.  
+- **Bookings**:  
+  - Bookings linked to parent (payer) + student (attendee).  
+  - BookingModal flow: select parent → student → session.  
+  - Students table supports multiple children per parent.  
+  - Capacity enforcement at booking.  
+- **Availabilities (v1)**:  
+  - Teacher availabilities via `react-big-calendar`.  
+  - Modal to add/edit slots.  
+  - Range select → create availability.  
+  - Tailwind overrides for toolbar/buttons/events.  
+- **Availability & Session Modals (v2)**:  
+  - Snap start/end times to 15-min increments (00/15/30/45).  
+  - Unified design with labelled fields + combobox + avatars.  
+  - Delete availability button.  
+  - Status colors (green=open, blue=booked, red=cancelled).  
+- **Scheduler (v1 – custom cross-platform)**:  
+  - Teachers on Y-axis, hours on X-axis.  
+  - Click slots to create availability/session.  
+  - Events stack without overlap.  
+  - Snap to 1-hour blocks.  
+  - **Day / Week / Month views** with navigation + Today reset.  
+- **Realtime Updates**:  
+  - Availabilities auto-refresh via Supabase subscriptions.  
+
+### Changed
+- Schema:  
+  - `availabilities.teacher_id` now FK to `users(id)`.  
+  - Normalised `status` across sessions + availabilities.  
+- Time handling:  
+  - Always stored in UTC, displayed in local timezone.  
+- Consolidated calendars: replaced `react-big-calendar` with custom Scheduler.  
+- Title formatting by view:  
+  - Day = “Tue 30 Sept 2025”.  
+  - Week = “Mon 29 – Sun 5”.  
+  - Month = “September 2025”.  
+
+### Fixed
+- Modal transparency (`bg-black/50`, `z-50`).  
+- Crash when teacher was null.  
+- Supabase “multiple relationship” query errors fixed.  
+- Events no longer overlap (stacked with offsets).  
+- Day/Week/Month buttons made responsive.  
+- Sidebar responsiveness restored when Scheduler mounted.
