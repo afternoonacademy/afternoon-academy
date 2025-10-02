@@ -23,6 +23,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
     { label: "📑 Bookings", href: "/admin/bookings" },
     { label: "📅 Sessions", href: "/admin/sessions" },
     { label: "🏢 Venues", href: "/admin/venues" },
+    { label: "🔔 Alerts", href: "/admin/alerts" },   // ✅ new placeholder
     { label: "⚙️ Settings", href: "/admin/settings" },
   ];
 
@@ -58,7 +59,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
         </aside>
 
         {/* Main Content */}
-<main className="flex-1 p-6 overflow-x-auto">{children}</main>
+        <main className="flex-1 p-6 overflow-x-auto">{children}</main>
       </div>
     </div>
   );

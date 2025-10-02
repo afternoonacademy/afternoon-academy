@@ -13,8 +13,8 @@ export interface AvailabilityModalProps {
     status: string;
     teacher_id?: string | null;
   } | null;
-  onSaved: () => Promise<void>;
-  onDeleted?: () => Promise<void>;
+  onSaved: (availability: any) => void;   // optimistic update
+  onDeleted?: (id: string) => void;       // optimistic delete
 }
 
 interface Teacher {
@@ -52,7 +52,7 @@ export default function AvailabilityModal({
   const [saving, setSaving] = useState(false);
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [teacherId, setTeacherId] = useState("");
-  const [status, setStatus] = useState("open");
+  const [status, setStatus] = useState<"available" | "cancelled">("available");
 
   const [startDate, setStartDate] = useState("");
   const [startHour, setStartHour] = useState("00");
@@ -69,7 +69,7 @@ export default function AvailabilityModal({
       .then(({ data }) => setTeachers((data as Teacher[]) || []));
 
     setTeacherId(availability?.teacher_id || "");
-    setStatus(availability?.status || "open");
+    setStatus((availability?.status as "available" | "cancelled") || "available");
 
     if (availability?.start_time && availability?.end_time) {
       const s = splitDateTime(availability.start_time);
@@ -108,28 +108,36 @@ export default function AvailabilityModal({
     };
 
     if (availability?.id) {
-      console.log("✏️ Updating availability", availability.id);
-      await supabase.from("availabilities").update(payload).eq("id", availability.id);
+      const { data } = await supabase
+        .from("availabilities")
+        .update(payload)
+        .eq("id", availability.id)
+        .select()
+        .single();
+
+      if (data) onSaved(data);
     } else {
-      console.log("➕ Inserting new availability");
-      await supabase.from("availabilities").insert([payload]);
+      const { data } = await supabase
+        .from("availabilities")
+        .insert([payload])
+        .select()
+        .single();
+
+      if (data) onSaved(data);
     }
 
     setSaving(false);
-    await onSaved();
     onClose();
   }
 
   async function handleDelete() {
     if (!availability?.id) return;
-
-    if (!confirm("Delete this availability?")) return;
     setSaving(true);
 
     await supabase.from("availabilities").delete().eq("id", availability.id);
 
     setSaving(false);
-    if (onDeleted) await onDeleted();
+    if (onDeleted) onDeleted(availability.id);
     onClose();
   }
 
@@ -205,11 +213,10 @@ export default function AvailabilityModal({
           {/* Status */}
           <select
             value={status}
-            onChange={(e) => setStatus(e.target.value)}
+            onChange={(e) => setStatus(e.target.value as "available" | "cancelled")}
             className="w-full border rounded px-2 py-1"
           >
-            <option value="open">Open</option>
-            <option value="booked">Booked</option>
+            <option value="available">Available</option>
             <option value="cancelled">Cancelled</option>
           </select>
         </div>
@@ -221,7 +228,7 @@ export default function AvailabilityModal({
               disabled={saving}
               className="px-4 py-2 border border-red-600 text-red-600 rounded hover:bg-red-50 disabled:opacity-50"
             >
-              Delete
+              {saving ? "Deleting…" : "Delete"}
             </button>
           )}
 

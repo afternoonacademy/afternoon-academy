@@ -31,10 +31,10 @@ export default function LandingPage() {
             I’m a Parent
           </button>
           <button
-            onClick={() => router.push("/sign-up?role=student")}
+            onClick={() => router.push("/sign-up?role=teacher")}
             className="px-5 py-2 rounded-lg bg-secondary text-white font-semibold hover:bg-secondary/90 transition"
           >
-            I’m a Student
+            I’m a Teacher
           </button>
         </div>
 
@@ -46,7 +46,7 @@ export default function LandingPage() {
           <p className="text-lg sm:text-xl text-gray-200 max-w-2xl mb-10">
             After-school support designed for{" "}
             <strong>students</strong> to thrive and{" "}
-            <strong>parents</strong> to feel confident.
+            <strong>parents & teachers</strong> to feel confident.
           </p>
 
           {/* CTA buttons */}
@@ -58,10 +58,10 @@ export default function LandingPage() {
               Join as Parent
             </button>
             <button
-              onClick={() => router.push("/sign-up?role=student")}
+              onClick={() => router.push("/sign-up?role=teacher")}
               className="px-6 py-3 rounded-lg bg-secondary text-white font-semibold hover:bg-secondary/90 transition"
             >
-              Join as Student
+              Join as Teacher
             </button>
           </div>
 

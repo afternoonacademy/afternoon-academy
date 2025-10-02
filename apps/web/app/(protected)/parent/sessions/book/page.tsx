@@ -26,7 +26,7 @@ export default function BookSessionPage() {
       const { data, error } = await supabase
         .from("availabilities")
         .select("id, start_time, end_time, subjects(name), users(name)")
-        .eq("status", "open")
+        .eq("status", "available") // ✅ FIXED
         .order("start_time");
 
       if (error) {
@@ -52,7 +52,7 @@ export default function BookSessionPage() {
         .from("availabilities")
         .update({
           parent_id: user.id,
-          status: "booked",
+          status: "booked", // ✅ valid enum
         })
         .eq("id", selectedId);
 

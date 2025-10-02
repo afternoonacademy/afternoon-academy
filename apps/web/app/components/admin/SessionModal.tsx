@@ -2,25 +2,38 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@repo/lib/supabase.client";
-import { Avatar } from "@/app/components/ui/Avatar";
-import {
-  Combobox,
-  ComboboxLabel,
-  ComboboxOption,
-} from "@/app/components/ui/Combobox";
 import { Field, Label } from "@/app/components/ui/FieldSet";
+import useAuthStore from "@repo/store/auth.store";
 
 interface SessionModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSessionAdded: () => void;
-  editingSession?: any | null;
+  editingSession?: SessionRow | null;
 }
 
-function combineDateTime(date: string, hour: string, minute: string): string {
-  if (!date) return "";
-  const iso = new Date(`${date}T${hour}:${minute}:00`);
-  return iso.toISOString();
+interface Venue { id: string; name: string }
+interface Subject { id: string; name: string }
+interface TeacherOption {
+  id: string;
+  name: string;
+  availabilityId?: string;
+  avatarUrl?: string | null;
+}
+
+interface SessionRow {
+  id: string;
+  start_time: string;
+  end_time: string;
+  status: string;
+  capacity: number;
+  subject?: { id: string; name: string };
+  teacher?: { id: string; name: string };
+  venue?: { id: string; name: string };
+}
+
+function combineDateTime(date: string, hour: string, minute: string) {
+  return date ? new Date(`${date}T${hour}:${minute}:00`).toISOString() : "";
 }
 
 function splitDateTime(datetime: string | null) {
@@ -29,11 +42,7 @@ function splitDateTime(datetime: string | null) {
   return {
     date: d.toISOString().slice(0, 10),
     hour: String(d.getHours()).padStart(2, "0"),
-    minute: ["00", "15", "30", "45"].includes(
-      String(d.getMinutes()).padStart(2, "0")
-    )
-      ? String(d.getMinutes()).padStart(2, "0")
-      : "00",
+    minute: String(d.getMinutes()).padStart(2, "0"),
   };
 }
 
@@ -43,30 +52,38 @@ export default function SessionModal({
   onSessionAdded,
   editingSession,
 }: SessionModalProps) {
-  const [venues, setVenues] = useState<any[]>([]);
+  const { user } = useAuthStore();
+  const [venues, setVenues] = useState<Venue[]>([]);
+  const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [availableTeachers, setAvailableTeachers] = useState<TeacherOption[]>([]);
+  const [selectedAvailabilityId, setSelectedAvailabilityId] = useState<string | null>(null);
+
   const [form, setForm] = useState({
     teacher_id: "",
     venue_id: "",
+    subject_id: "",
     duration: 1,
     capacity: 10,
-    status: "scheduled",
+    status: "bookable" as "bookable" | "booked" | "cancelled" | "unassigned",
   });
 
   const [startDate, setStartDate] = useState("");
   const [startHour, setStartHour] = useState("00");
   const [startMinute, setStartMinute] = useState("00");
-
-  const [availableTeachers, setAvailableTeachers] = useState<any[]>([]);
   const [warning, setWarning] = useState("");
   const [saving, setSaving] = useState(false);
 
-  // Load venues
+  // Load venues + subjects
   useEffect(() => {
-    async function loadData() {
-      const { data: ven } = await supabase.from("venues").select("id, name");
-      setVenues(ven || []);
-    }
-    if (isOpen) loadData();
+    if (!isOpen) return;
+    (async () => {
+      const [{ data: ven }, { data: subs }] = await Promise.all([
+        supabase.from("venues").select("id, name"),
+        supabase.from("subjects").select("id, name"),
+      ]);
+      setVenues((ven || []) as Venue[]);
+      setSubjects((subs || []) as Subject[]);
+    })();
   }, [isOpen]);
 
   // Pre-fill when editing
@@ -74,10 +91,13 @@ export default function SessionModal({
     if (editingSession) {
       setForm({
         teacher_id: editingSession.teacher?.id || "",
-        venue_id: editingSession.venues?.id || "",
+        venue_id: editingSession.venue?.id || "",
+        subject_id: editingSession.subject?.id || "",
         duration: 1,
         capacity: editingSession.capacity || 10,
-        status: editingSession.status || "scheduled",
+        status:
+          (editingSession.status as "bookable" | "booked" | "cancelled" | "unassigned") ||
+          "bookable",
       });
 
       if (editingSession.start_time) {
@@ -90,21 +110,22 @@ export default function SessionModal({
       setForm({
         teacher_id: "",
         venue_id: "",
+        subject_id: "",
         duration: 1,
         capacity: 10,
-        status: "scheduled",
+        status: "bookable",
       });
       setStartDate("");
       setStartHour("00");
       setStartMinute("00");
+      setSelectedAvailabilityId(null);
     }
   }, [editingSession]);
 
   // Availability check
   useEffect(() => {
-    async function checkAvailability() {
-      if (!startDate) return;
-
+    if (!startDate) return;
+    (async () => {
       const startIso = combineDateTime(startDate, startHour, startMinute);
       const start = new Date(startIso);
       const end = new Date(start);
@@ -116,12 +137,10 @@ export default function SessionModal({
 
       const { data, error } = await supabase
         .from("availabilities")
-        .select(
-          `id, teacher_id, users!availabilities_teacher_id_fkey ( id, name )`
-        )
-        .eq("status", "open")
-        .lte("start_time", sessionStart)
-        .gte("end_time", sessionEnd);
+        .select("id, teacher_id, users!availabilities_teacher_id_fkey ( id, name, avatar_url )")
+        .eq("status", "available")
+        .lte("start_time", sessionEnd)
+        .gte("end_time", sessionStart);
 
       if (error) {
         console.error("❌ Availability check failed:", error.message);
@@ -130,27 +149,26 @@ export default function SessionModal({
 
       if (data && data.length > 0) {
         setAvailableTeachers(
-          data.map((a: any) => ({
-            id: a.users?.id,
-            name: a.users?.name,
-            availabilityId: a.id,
-            avatarUrl: null,
-          }))
+          data
+            .filter((a: any) => a.users)
+            .map((a: any) => ({
+              id: a.users.id,
+              name: a.users.name,
+              availabilityId: a.id,
+              avatarUrl: a.users.avatar_url || null,
+            }))
         );
         setWarning("");
       } else {
         setAvailableTeachers([]);
         setWarning("⚠️ No teachers available for this slot.");
       }
-    }
-
-    checkAvailability();
+    })();
   }, [startDate, startHour, startMinute, form.duration]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
-
     try {
       const startIso = combineDateTime(startDate, startHour, startMinute);
       const start = new Date(startIso);
@@ -161,91 +179,136 @@ export default function SessionModal({
       const payload = {
         teacher_id: form.teacher_id || null,
         venue_id: form.venue_id || null,
+        subject_id: form.subject_id || null,
         start_time: start.toISOString(),
         end_time: end.toISOString(),
         capacity: form.capacity,
         status: form.status,
+        availability_id: selectedAvailabilityId,
       };
 
       if (editingSession) {
-        await supabase.from("sessions").update(payload).eq("id", editingSession.id);
+        const { error } = await supabase.from("sessions").update(payload).eq("id", editingSession.id);
+        if (error) throw new Error(error.message);
       } else {
-        const { error: insertError } = await supabase
-          .from("sessions")
-          .insert([payload]);
-        if (insertError) throw insertError;
-
-        // 🔵 Update availability status → "ready"
-        if (form.teacher_id) {
-          const { error: availError } = await supabase
-            .from("availabilities")
-            .update({ status: "ready" })
-            .eq("teacher_id", form.teacher_id)
-            .lte("start_time", start.toISOString())
-            .gte("end_time", end.toISOString());
-
-          if (availError) {
-            console.error("❌ Failed to update availability:", availError.message);
-          }
-        }
+        const { error } = await supabase.from("sessions").insert([payload]);
+        if (error) throw new Error(error.message);
       }
 
       onSessionAdded();
       onClose();
-    } catch (err: any) {
-      alert("❌ Failed to save session: " + err.message);
+    } catch (err) {
+      if (err instanceof Error) alert("❌ " + err.message);
     } finally {
       setSaving(false);
     }
   }
 
-  if (!isOpen) return null;
+  // Request workflow
+  async function handleRequestExtension() {
+    const startIso = combineDateTime(startDate, startHour, startMinute);
+    const start = new Date(startIso);
+    const end = new Date(start);
+    end.setHours(start.getHours() + Math.floor(form.duration));
+    if (form.duration % 1 !== 0) end.setMinutes(start.getMinutes() + 30);
 
-  const startLabel =
-    startDate &&
-    `${startDate} ${startHour}:${startMinute} (${form.duration}h)`;
+    const { error } = await supabase.from("availability_requests").insert([
+      {
+        teacher_id: form.teacher_id,
+        session_id: editingSession?.id,
+        requested_by: user?.id,
+        requested_start_time: start.toISOString(),
+        requested_end_time: end.toISOString(),
+      },
+    ]);
+    if (error) alert("❌ Failed to create request: " + error.message);
+    else {
+      alert("✅ Request sent to teacher.");
+      onClose();
+    }
+  }
+
+  if (!isOpen) return null;
+  const startLabel = startDate && `${startDate} ${startHour}:${startMinute} (${form.duration}h)`;
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
-      <div className="bg-white rounded shadow-lg p-6 w-full max-w-lg">
+    <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+      <div className="bg-white rounded shadow-lg p-6 w-full max-w-lg relative z-50">
         <h2 className="text-xl font-bold mb-2">
           {editingSession ? "✏️ Edit Session" : "➕ Add Session"}
         </h2>
-        {startLabel && (
-          <p className="text-sm text-gray-600 mb-4">Start: {startLabel}</p>
-        )}
+        {startLabel && <p className="text-sm text-gray-600 mb-4">Start: {startLabel}</p>}
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Date + Time */}
+          <Field>
+            <Label>Start Time</Label>
+            <input
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              className="w-full border rounded px-2 py-1"
+            />
+            <div className="flex gap-2 mt-1">
+              <select value={startHour} onChange={(e) => setStartHour(e.target.value)} className="border rounded px-2 py-1">
+                {Array.from({ length: 24 }, (_, i) => (
+                  <option key={i} value={String(i).padStart(2, "0")}>
+                    {String(i).padStart(2, "0")}
+                  </option>
+                ))}
+              </select>
+              <select value={startMinute} onChange={(e) => setStartMinute(e.target.value)} className="border rounded px-2 py-1">
+                {["00", "15", "30", "45"].map((m) => (
+                  <option key={m} value={m}>{m}</option>
+                ))}
+              </select>
+            </div>
+          </Field>
+
+          {/* Duration */}
+          <Field>
+            <Label>Duration</Label>
+            <select
+              value={form.duration}
+              onChange={(e) => setForm({ ...form, duration: parseFloat(e.target.value) })}
+              className="w-full border rounded px-2 py-1"
+            >
+              <option value="1">1 hour</option>
+              <option value="1.5">1.5 hours</option>
+              <option value="2">2 hours</option>
+              <option value="3">3 hours</option>
+            </select>
+          </Field>
+
           {/* Teacher */}
           <Field>
             <Label>Teacher</Label>
-            {availableTeachers.length > 0 ? (
-              <Combobox
-                name="teacher"
-                options={availableTeachers}
-                displayValue={(t) => t?.name}
-                value={
-                  availableTeachers.find((t) => t.id === form.teacher_id) || null
-                }
-                onChange={(val) =>
-                  setForm({ ...form, teacher_id: val ? val.id : "" })
-                }
-              >
-                {(t) => (
-                  <ComboboxOption value={t}>
-                    <Avatar
-                      src={t.avatarUrl}
-                      initials={t.name?.[0] || "T"}
-                      className="bg-purple-500 text-white"
-                      alt=""
-                    />
-                    <ComboboxLabel>{t.name}</ComboboxLabel>
-                  </ComboboxOption>
-                )}
-              </Combobox>
-            ) : (
-              <p className="text-red-600 text-sm">{warning}</p>
-            )}
+            <select
+              value={form.teacher_id}
+              onChange={(e) => setForm({ ...form, teacher_id: e.target.value })}
+              className="w-full border px-2 py-1 rounded"
+            >
+              {form.teacher_id === "" && <option value="">— Select Teacher —</option>}
+              {availableTeachers.map((t) => (
+                <option key={t.id} value={t.id}>{t.name}</option>
+              ))}
+            </select>
+            {warning && <div className="text-sm text-red-600 mt-1">{warning}</div>}
+          </Field>
+
+          {/* Subject ✅ restored */}
+          <Field>
+            <Label>Subject</Label>
+            <select
+              value={form.subject_id}
+              onChange={(e) => setForm({ ...form, subject_id: e.target.value })}
+              className="w-full border px-2 py-1 rounded"
+            >
+              <option value="">— Select Subject —</option>
+              {subjects.map((s) => (
+                <option key={s.id} value={s.id}>{s.name}</option>
+              ))}
+            </select>
           </Field>
 
           {/* Venue */}
@@ -258,62 +321,8 @@ export default function SessionModal({
             >
               <option value="">— Select Venue —</option>
               {venues.map((v) => (
-                <option key={v.id} value={v.id}>
-                  {v.name}
-                </option>
+                <option key={v.id} value={v.id}>{v.name}</option>
               ))}
-            </select>
-          </Field>
-
-          {/* Start Date + Time */}
-          <Field>
-            <Label>Start Time</Label>
-            <input
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              className="w-full border rounded px-2 py-1"
-            />
-            <div className="flex gap-2 mt-1">
-              <select
-                value={startHour}
-                onChange={(e) => setStartHour(e.target.value)}
-                className="border rounded px-2 py-1"
-              >
-                {Array.from({ length: 24 }, (_, i) => (
-                  <option key={i} value={String(i).padStart(2, "0")}>
-                    {String(i).padStart(2, "0")}
-                  </option>
-                ))}
-              </select>
-              <select
-                value={startMinute}
-                onChange={(e) => setStartMinute(e.target.value)}
-                className="border rounded px-2 py-1"
-              >
-                {["00", "15", "30", "45"].map((m) => (
-                  <option key={m} value={m}>
-                    {m}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </Field>
-
-          {/* Duration */}
-          <Field>
-            <Label>Duration</Label>
-            <select
-              value={form.duration}
-              onChange={(e) =>
-                setForm({ ...form, duration: parseFloat(e.target.value) })
-              }
-              className="w-full border rounded px-2 py-1"
-            >
-              <option value="1">1 hour</option>
-              <option value="1.5">1.5 hours</option>
-              <option value="2">2 hours</option>
-              <option value="3">3 hours</option>
             </select>
           </Field>
 
@@ -323,9 +332,7 @@ export default function SessionModal({
             <input
               type="number"
               value={form.capacity}
-              onChange={(e) =>
-                setForm({ ...form, capacity: parseInt(e.target.value) })
-              }
+              onChange={(e) => setForm({ ...form, capacity: parseInt(e.target.value) })}
               className="w-full border px-2 py-1 rounded"
               min={1}
             />
@@ -336,30 +343,39 @@ export default function SessionModal({
             <Label>Status</Label>
             <select
               value={form.status}
-              onChange={(e) => setForm({ ...form, status: e.target.value })}
+              onChange={(e) => setForm({ ...form, status: e.target.value as any })}
               className="w-full border px-2 py-1 rounded"
             >
-              <option value="scheduled">Scheduled</option>
+              <option value="bookable">Bookable</option>
+              <option value="booked">Booked</option>
               <option value="cancelled">Cancelled</option>
-              <option value="completed">Completed</option>
+              <option value="unassigned">Unassigned</option>
             </select>
           </Field>
 
+          {/* Actions */}
           <div className="flex justify-end gap-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 rounded bg-gray-200 hover:bg-gray-300"
-            >
+            <button type="button" onClick={onClose} className="px-4 py-2 rounded bg-gray-200 hover:bg-gray-300">
               Cancel
             </button>
-            <button
-              type="submit"
-              disabled={saving}
-              className="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
-            >
-              {saving ? "Saving..." : editingSession ? "Update" : "Create"}
-            </button>
+            {warning ? (
+              <button
+                type="button"
+                onClick={handleRequestExtension}
+                disabled={saving}
+                className="px-4 py-2 rounded bg-yellow-500 text-white hover:bg-yellow-600"
+              >
+                Request Extension
+              </button>
+            ) : (
+              <button
+                type="submit"
+                disabled={saving}
+                className="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
+              >
+                {saving ? "Saving..." : editingSession ? "Update" : "Create"}
+              </button>
+            )}
           </div>
         </form>
       </div>

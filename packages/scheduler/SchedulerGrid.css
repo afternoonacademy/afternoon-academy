@@ -1,0 +1,116 @@
+.scheduler {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #ddd;
+  width: 100%;
+  max-height: 80vh;
+  overflow: visible;
+}
+
+.scheduler-header {
+  display: flex;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: #fff;
+}
+
+.teacher-col-header {
+  width: 150px;
+  border-right: 1px solid #ddd;
+  background: #f8f9fa;
+}
+
+.time-header {
+  overflow-x: hidden;
+  flex: 1;
+}
+
+.time-row {
+  display: grid;
+}
+
+.time-cell {
+  text-align: center;
+  padding: 6px;
+  border-right: 1px solid #eee;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.scheduler-body {
+  display: flex;
+  flex: 1;
+}
+
+.teacher-col {
+  width: 150px;
+  overflow-y: auto;
+  border-right: 1px solid #ddd;
+}
+
+.teacher-cell {
+  display: flex;
+  align-items: center;
+  padding-left: 8px;
+  font-weight: 500;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.grid-scroll {
+  flex: 1;
+  overflow: auto;
+  position: relative;
+}
+
+.grid {
+  display: grid;
+  position: relative;
+}
+
+.grid-cell {
+  border-bottom: 1px solid #f9f9f9;
+  border-right: 1px solid #f9f9f9;
+}
+
+.event {
+  border-radius: 4px;
+  padding: 4px 6px;
+  font-size: 13px;
+  overflow: hidden;
+  border: 1px solid transparent;
+  color: #111;
+}
+
+/* 🔵 Availability-only (yellow) */
+.event-available {
+  background: #fff3bf;
+  border-color: #ffd43b;
+}
+
+/* 🟢 Session with teacher assigned = bookable */
+.event-bookable {
+  background: #d3f9d8;
+  border-color: #69db7c;
+}
+
+/* 🔵 Session with no teacher yet = unassigned */
+.event-unassigned {
+  background: #d0ebff;
+  border-color: #74c0fc;
+}
+
+/* ⚫ Session that has been booked */
+.event-booked {
+  background: #212529;
+  border-color: #000;
+  color: #fff;
+}
+
+/* 🔴 Cancelled session */
+.event-cancelled {
+  background: #ffd8d8;
+  border-color: #ff6b6b;
+  color: #c92a2a;
+}

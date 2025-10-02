@@ -2,13 +2,14 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@repo/lib/supabase.client";
+import type { AvailabilityStatus } from "@repo/types";
 
 export interface Availability {
   id: string;
   teacher_id: string | null;
   start_time: string;
   end_time: string;
-  status: string;
+  status: AvailabilityStatus;  // ✅ now typed properly
 }
 
 export function useAvailabilities() {
@@ -17,7 +18,6 @@ export function useAvailabilities() {
   const [error, setError] = useState<string | null>(null);
 
   const fetchAvailabilities = useCallback(async () => {
-    console.log("🔄 [useAvailabilities] Fetching from DB…");
     setLoading(true);
 
     const { data, error } = await supabase
@@ -28,10 +28,11 @@ export function useAvailabilities() {
     if (error) {
       console.error("❌ Failed to load availabilities:", error.message);
       setError(error.message);
-    } else {
-      console.log("✅ [useAvailabilities] Loaded", data);
-      setAvailabilities(data || []);
+      setLoading(false);
+      return;
     }
+
+    setAvailabilities((data || []) as Availability[]);
     setLoading(false);
   }, []);
 
@@ -39,5 +40,27 @@ export function useAvailabilities() {
     fetchAvailabilities();
   }, [fetchAvailabilities]);
 
-  return { availabilities, loading, error, refetch: fetchAvailabilities };
+  // ✅ Optimistic mutation helpers
+  const addOrUpdateAvailability = (availability: Availability) => {
+    setAvailabilities((prev) => {
+      const exists = prev.find((a) => a.id === availability.id);
+      if (exists) {
+        return prev.map((a) => (a.id === availability.id ? availability : a));
+      }
+      return [...prev, availability];
+    });
+  };
+
+  const removeAvailability = (id: string) => {
+    setAvailabilities((prev) => prev.filter((a) => a.id !== id));
+  };
+
+  return {
+    availabilities,
+    loading,
+    error,
+    refetch: fetchAvailabilities,
+    addOrUpdateAvailability,
+    removeAvailability,
+  };
 }

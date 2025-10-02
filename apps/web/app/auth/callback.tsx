@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@repo/lib/supabase.client";
-import { ensureUserInDb } from "@repo/lib/ensureUserInDb"; // ✅ shared helper
+import { ensureUserInDb } from "@repo/lib/ensureUserInDb";
 import useAuthStore from "@repo/store/auth.store";
 
 export default function AuthCallbackPage() {
@@ -31,15 +31,15 @@ export default function AuthCallbackPage() {
         const user = data.session.user;
         console.log("✅ [AuthCallback:Web] Session restored. User:", user);
 
-        // ✅ Decide role (default = parent)
-        let role: "admin" | "parent" | "student" | "teacher" = "parent";
+        // ✅ Decide role
+        let role: "admin" | "parent" | "teacher" = "parent";
 
         if (user.email?.endsWith("@afternoonacademy.com")) {
           role = "admin";
-        } else if (user.user_metadata?.role === "student") {
-          role = "student";
         } else if (user.user_metadata?.role === "teacher") {
           role = "teacher";
+        } else {
+          role = "parent"; // fallback
         }
 
         // ✅ Ensure row in DB
@@ -52,9 +52,6 @@ export default function AuthCallbackPage() {
         switch (role) {
           case "admin":
             router.replace("/admin");
-            break;
-          case "student":
-            router.replace("/student");
             break;
           case "teacher":
             router.replace("/teacher");

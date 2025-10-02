@@ -2,7 +2,7 @@
 
 import React, { useMemo, useState } from "react";
 import SchedulerGrid from "./SchedulerGrid";
-import { Teacher, SchedulerEvent } from "./types";
+import type { Teacher, SchedulerEvent } from "@repo/types";
 
 export interface SchedulerProps {
   date?: Date;
@@ -12,9 +12,30 @@ export interface SchedulerProps {
   events: SchedulerEvent[];
   onEventClick?: (event: SchedulerEvent) => void;
   onSlotClick?: (teacher: Teacher, start: Date, end: Date) => void;
+  rowHeight?: number;
+  colWidth?: number;
+  singleTeacherMode?: boolean;
 }
 
 type ViewMode = "day" | "week" | "month";
+
+// ✅ helper to normalise statuses
+function normalizeStatus(status: string): SchedulerEvent["status"] {
+  switch (status) {
+    case "available":
+      return "available";
+    case "bookable":
+      return "bookable";
+    case "unassigned":
+      return "unassigned";
+    case "booked":
+      return "booked";
+    case "cancelled":
+      return "cancelled";
+    default:
+      return "available"; // fallback
+  }
+}
 
 export default function Scheduler({
   date: initialDate = new Date(),
@@ -24,9 +45,16 @@ export default function Scheduler({
   events,
   onEventClick,
   onSlotClick,
+  rowHeight = 60,
+  colWidth = 120,
+  singleTeacherMode = false,
 }: SchedulerProps) {
   const [viewMode, setViewMode] = useState<ViewMode>("day");
   const [date, setDate] = useState<Date>(initialDate);
+
+  // auto-scale for teacher view
+  const effectiveRowHeight = singleTeacherMode ? 100 : rowHeight;
+  const effectiveColWidth = singleTeacherMode ? 160 : colWidth;
 
   const hours = useMemo(() => {
     const list: number[] = [];
@@ -53,10 +81,15 @@ export default function Scheduler({
 
   const goToToday = () => setDate(new Date());
 
-  // 🔵 Filter events so they only show for current view
+  // 🔵 Filter events + normalise statuses
   const filteredEvents = useMemo(() => {
+    const normalized = events.map((ev) => ({
+      ...ev,
+      status: normalizeStatus(ev.status),
+    }));
+
     if (viewMode === "day") {
-      return events.filter((ev) => {
+      return normalized.filter((ev) => {
         const d = new Date(ev.start);
         return (
           d.getFullYear() === date.getFullYear() &&
@@ -68,13 +101,13 @@ export default function Scheduler({
 
     if (viewMode === "week") {
       const startOfWeek = new Date(date);
-      startOfWeek.setDate(date.getDate() - date.getDay()); // Sunday
+      startOfWeek.setDate(date.getDate() - date.getDay());
       startOfWeek.setHours(0, 0, 0, 0);
       const endOfWeek = new Date(startOfWeek);
       endOfWeek.setDate(startOfWeek.getDate() + 6);
       endOfWeek.setHours(23, 59, 59);
 
-      return events.filter((ev) => {
+      return normalized.filter((ev) => {
         const d = new Date(ev.start);
         return d >= startOfWeek && d <= endOfWeek;
       });
@@ -85,13 +118,13 @@ export default function Scheduler({
       const endOfMonth = new Date(date.getFullYear(), date.getMonth() + 1, 0);
       endOfMonth.setHours(23, 59, 59);
 
-      return events.filter((ev) => {
+      return normalized.filter((ev) => {
         const d = new Date(ev.start);
         return d >= startOfMonth && d <= endOfMonth;
       });
     }
 
-    return events;
+    return normalized;
   }, [events, date, viewMode]);
 
   // 🔵 Title
@@ -175,6 +208,9 @@ export default function Scheduler({
           view={viewMode}
           onEventClick={onEventClick}
           onSlotClick={onSlotClick}
+          rowHeight={effectiveRowHeight}
+          colWidth={effectiveColWidth}
+          singleTeacherMode={singleTeacherMode}
         />
       </div>
     </div>

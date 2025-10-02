@@ -1,7 +1,36 @@
 "use client";
 
 import React, { useRef, useEffect } from "react";
-import type { SchedulerEvent, Teacher } from "./types";
+import type { SchedulerEvent, Teacher } from "@repo/types";
+import * as TooltipPrimitive from "@radix-ui/react-tooltip";
+import "./SchedulerGrid.css";
+
+function Tooltip({
+  children,
+  content,
+}: {
+  children: React.ReactNode;
+  content: React.ReactNode;
+}) {
+  return (
+    <TooltipPrimitive.Provider delayDuration={150}>
+      <TooltipPrimitive.Root>
+        <TooltipPrimitive.Trigger asChild>
+          {children}
+        </TooltipPrimitive.Trigger>
+        <TooltipPrimitive.Portal>
+          <TooltipPrimitive.Content
+            side="top"
+            className="z-50 rounded-md bg-white px-3 py-2 text-sm text-black shadow-lg border border-gray-200"
+          >
+            {content}
+            <TooltipPrimitive.Arrow className="fill-white stroke-gray-200" />
+          </TooltipPrimitive.Content>
+        </TooltipPrimitive.Portal>
+      </TooltipPrimitive.Root>
+    </TooltipPrimitive.Provider>
+  );
+}
 
 interface SchedulerGridProps {
   teachers: Teacher[];
@@ -10,7 +39,7 @@ interface SchedulerGridProps {
   endHour?: number;
   rowHeight?: number;
   colWidth?: number;
-  onEventClick?: (event: SchedulerEvent) => void;
+  onEventClick?: (event: SchedulerEvent & { action?: "edit" | "delete" }) => void;
   onSlotClick?: (teacher: Teacher, start: Date, end: Date) => void;
   date?: Date;
   view?: "day" | "week" | "month";
@@ -38,7 +67,6 @@ export default function SchedulerGrid({
     const header = headerRef.current;
     const teacher = teacherRef.current;
     if (!body || !header || !teacher) return;
-
     const onScroll = () => {
       header.scrollLeft = body.scrollLeft;
       teacher.scrollTop = body.scrollTop;
@@ -54,13 +82,15 @@ export default function SchedulerGrid({
       ? Array.from({ length: 7 }, (_, i) => {
           const d = new Date(date);
           d.setDate(date.getDate() - date.getDay() + i);
+          d.setHours(0, 0, 0, 0);
           return d;
         })
       : view === "month"
-      ? Array.from({ length: new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate() }, (_, i) => {
-          return new Date(date.getFullYear(), date.getMonth(), i + 1);
-        })
-      : [date];
+      ? Array.from(
+          { length: new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate() },
+          (_, i) => new Date(date.getFullYear(), date.getMonth(), i + 1)
+        )
+      : [new Date(date.getFullYear(), date.getMonth(), date.getDate())];
 
   return (
     <div className="scheduler">
@@ -124,6 +154,7 @@ export default function SchedulerGrid({
               gridTemplateRows: `repeat(${teachers.length}, ${rowHeight}px)`,
             }}
           >
+            {/* Slots */}
             {teachers.map((t, row) =>
               days.flatMap((d, di) =>
                 view === "month"
@@ -171,26 +202,44 @@ export default function SchedulerGrid({
               const start = new Date(ev.start);
               const end = new Date(ev.end);
 
-              if (view === "month") {
-                const startDay = start.getDate() - 1;
-                const endDay = end.getDate() - 1;
-                const span = Math.max(1, endDay - startDay + 1);
+              const tooltipContent = (
+                <div className="space-y-1">
+                  <p className="font-medium">{ev.title}</p>
+                  <p className="text-xs text-gray-600">
+                    {start.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} –{" "}
+                    {end.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                  </p>
+                  <p className="text-xs">
+                    <strong>Status:</strong> {ev.status}
+                  </p>
 
-                return (
-                  <div
-                    key={ev.id}
-                    className={`event event-${ev.status} cursor-pointer`}
-                    style={{
-                      gridColumn: `${startDay + 1} / span ${span}`,
-                      gridRow: teacherIndex + 1,
-                    }}
-                    onClick={() => onEventClick?.(ev)}
-                  >
-                    {ev.title}
+                  {ev.type === "session" && (
+                    <>
+                      <p className="text-xs">
+                        <strong>Subject:</strong> {ev.subject || "(No subject yet)"}
+                      </p>
+                      <p className="text-xs">
+                        <strong>Venue:</strong> {ev.venue || "(Unassigned venue)"}
+                      </p>
+                    </>
+                  )}
+
+                  <div className="flex gap-2 pt-2">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onEventClick?.({ ...ev, action: "edit" });
+                      }}
+                      className="text-xs px-2 py-1 bg-blue-600 text-white rounded"
+                    >
+                      Edit
+                    </button>
+                    
                   </div>
-                );
-              }
+                </div>
+              );
 
+              // Find the correct day
               const dayIndex = days.findIndex(
                 (d) =>
                   d.getDate() === start.getDate() &&
@@ -199,116 +248,30 @@ export default function SchedulerGrid({
               );
               if (dayIndex === -1) return null;
 
-              const startHourIndex = start.getHours() - startHour;
-              const durationHours = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
+              // ✅ Fractional support: compute precise position
+              const startHourFloat = start.getHours() + start.getMinutes() / 60;
+              const endHourFloat = end.getHours() + end.getMinutes() / 60;
+              const durationHours = endHourFloat - startHourFloat;
+
+              const startHourIndex = Math.max(startHourFloat - startHour, 0);
 
               return (
-                <div
-                  key={ev.id}
-                  className={`event event-${ev.status} cursor-pointer`}
-                  style={{
-                    gridColumn: `${dayIndex * hours.length + startHourIndex + 1} / span ${durationHours}`,
-                    gridRow: teacherIndex + 1,
-                  }}
-                  onClick={() => onEventClick?.(ev)}
-                >
-                  {ev.title}
-                </div>
+                <Tooltip key={ev.id} content={tooltipContent}>
+                  <div
+                    className={`event event-${ev.status} cursor-pointer`}
+                    style={{
+                      gridColumn: `${dayIndex * hours.length + Math.floor(startHourIndex) + 1} / span ${Math.ceil(durationHours)}`,
+                      gridRow: teacherIndex + 1,
+                    }}
+                  >
+                    {ev.title}
+                  </div>
+                </Tooltip>
               );
             })}
           </div>
         </div>
       </div>
-
-      <style jsx>{`
-        .scheduler {
-          display: flex;
-          flex-direction: column;
-          border: 1px solid #ddd;
-          height: 600px;
-          width: 100%;
-        }
-        .scheduler-header {
-          display: flex;
-          position: sticky;
-          top: 0;
-          z-index: 10;
-          background: #fff;
-        }
-        .teacher-col-header {
-          width: 150px;
-          border-right: 1px solid #ddd;
-          background: #f8f9fa;
-        }
-        .time-header {
-          overflow-x: hidden;
-          flex: 1;
-        }
-        .time-row {
-          display: grid;
-        }
-        .time-cell {
-          text-align: center;
-          padding: 4px;
-          border-right: 1px solid #eee;
-          font-size: 11px;
-          font-weight: 500;
-          white-space: nowrap;
-        }
-        .scheduler-body {
-          display: flex;
-          flex: 1;
-          min-height: 0;
-        }
-        .teacher-col {
-          width: 150px;
-          overflow-y: hidden;
-          border-right: 1px solid #ddd;
-        }
-        .teacher-cell {
-          display: flex;
-          align-items: center;
-          padding-left: 8px;
-          font-weight: 500;
-          border-bottom: 1px solid #f0f0f0;
-        }
-        .grid-scroll {
-          flex: 1;
-          overflow: auto;
-          position: relative;
-        }
-        .grid {
-          display: grid;
-          position: relative;
-        }
-        .grid-cell {
-          border-bottom: 1px solid #f9f9f9;
-          border-right: 1px solid #f9f9f9;
-        }
-        .event {
-          border-radius: 4px;
-          padding: 2px 4px;
-          font-size: 12px;
-          overflow: hidden;
-          border: 1px solid transparent;
-        }
-        .event-open {
-          background: #d3f9d8;
-          border-color: #69db7c;
-        }
-        .event-ready {
-          background: #fff3bf;
-          border-color: #ffd43b;
-        }
-        .event-booked {
-          background: #ffd8d8;
-          border-color: #ff6b6b;
-        }
-        .event-cancelled {
-          background: #e9ecef;
-          border-color: #868e96;
-        }
-      `}</style>
     </div>
   );
 }

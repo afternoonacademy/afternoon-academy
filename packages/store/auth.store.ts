@@ -66,19 +66,22 @@ const useAuthStore = create<AuthState>((set, get) => ({
       }
 
       // 🔹 Merge into a single object
-      const mergedUser: User = {
-        id: authUser.id,
-        email: authUser.email ?? "",
-        name:
-          profile?.name ??
-          (authUser.user_metadata?.name as string | undefined) ??
-          "",
-        role:
-          profile?.role ??
-          (authUser.user_metadata?.role as string | undefined) ??
-          "parent",
-        created_at: profile?.created_at ?? undefined, // ✅ matches new type
-      };
+      // inside fetchAuthenticatedUser
+const mergedUser: User = {
+  id: authUser.id,
+  email: authUser.email ?? "",
+  name:
+    profile?.name ??
+    (authUser.user_metadata?.name as string | undefined) ??
+    "",
+  role:
+    profile?.role ??
+    (authUser.user_metadata?.role as string | undefined) ??
+    "parent",
+  created_at: profile?.created_at ?? undefined,
+  avatar_url: profile?.avatar_url ?? null, // ✅ include avatar
+};
+
 
       console.log("✅ [AuthStore] Final merged user:", mergedUser);
 

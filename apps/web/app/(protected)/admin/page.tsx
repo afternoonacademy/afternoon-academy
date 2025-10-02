@@ -8,6 +8,7 @@ import {
   UsersIcon,
   BookOpenIcon,
   CalendarDaysIcon,
+  BellAlertIcon,
 } from "@heroicons/react/24/outline";
 
 export default function AdminDashboardPage() {
@@ -17,23 +18,34 @@ export default function AdminDashboardPage() {
     subjects: 0,
     sessions: 0,
     bookings: 0,
+    alerts: 0,
   });
 
   useEffect(() => {
     async function loadStats() {
-      const [{ count: userCount }, { count: subjectCount }, { count: sessionCount }, { count: bookingCount }] =
-        await Promise.all([
-          supabase.from("users").select("id", { count: "exact", head: true }),
-          supabase.from("subjects").select("id", { count: "exact", head: true }),
-          supabase.from("sessions").select("id", { count: "exact", head: true }),
-          supabase.from("bookings").select("id", { count: "exact", head: true }),
-        ]);
+      const [
+        { count: userCount },
+        { count: subjectCount },
+        { count: sessionCount },
+        { count: bookingCount },
+        { count: alertCount },
+      ] = await Promise.all([
+        supabase.from("users").select("id", { count: "exact", head: true }),
+        supabase.from("subjects").select("id", { count: "exact", head: true }),
+        supabase.from("sessions").select("id", { count: "exact", head: true }),
+        supabase.from("bookings").select("id", { count: "exact", head: true }),
+        supabase
+          .from("alerts")
+          .select("id", { count: "exact", head: true })
+          .eq("status", "unread"), // only unread
+      ]);
 
       setStats({
         users: userCount || 0,
         subjects: subjectCount || 0,
         sessions: sessionCount || 0,
         bookings: bookingCount || 0,
+        alerts: alertCount || 0,
       });
     }
 
@@ -69,27 +81,32 @@ export default function AdminDashboardPage() {
       count: stats.bookings,
       href: "/admin/bookings",
     },
+    {
+      title: "Alerts",
+      description: "Teacher availability requests & system notifications.",
+      icon: <BellAlertIcon className="h-6 w-6 text-red-600" />,
+      count: stats.alerts,
+      href: "/admin/alerts", // 👉 New page we’ll build
+    },
   ];
 
   return (
     <main className="p-6 bg-gray-50 min-h-screen">
       <h1 className="text-2xl font-bold mb-6">📊 Admin Dashboard</h1>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
         {cards.map((card) => (
           <button
             key={card.title}
             onClick={() => router.push(card.href)}
-            className="bg-white shadow rounded-lg p-4 flex flex-col items-start text-left hover:shadow-md transition"
+            className="bg-white shadow rounded-lg p-4 flex flex-col items-start text-left hover:shadow-md transition relative"
           >
             <div className="flex items-center gap-3 mb-2">
               {card.icon}
               <h2 className="font-semibold">{card.title}</h2>
             </div>
             <p className="text-gray-600 mb-2">{card.description}</p>
-            <span className="text-2xl font-bold text-gray-800">
-              {card.count}
-            </span>
+            <span className="text-2xl font-bold text-gray-800">{card.count}</span>
           </button>
         ))}
       </div>

@@ -13,22 +13,22 @@ import {
 import { Badge } from "@/app/components/ui/Badge";
 import SessionModal from "@/app/components/admin/SessionModal";
 
-interface Session {
+interface SessionRow {
   id: string;
   start_time: string;
   end_time: string;
   status: string;
   capacity: number;
-  subjects: { id: string; name: string } | null;
-  teacher: { id: string; name: string } | null;
-  venues: { id: string; name: string } | null;
+  subject?: { id: string; name: string } | null;
+  teacher?: { id: string; name: string } | null;
+  venue?: { id: string; name: string } | null;
 }
 
 export default function SessionsPage() {
-  const [sessions, setSessions] = useState<Session[]>([]);
+  const [sessions, setSessions] = useState<SessionRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingSession, setEditingSession] = useState<Session | null>(null);
+  const [editingSession, setEditingSession] = useState<SessionRow | null>(null);
 
   async function loadSessions() {
     const { data, error } = await supabase
@@ -40,18 +40,20 @@ export default function SessionsPage() {
         end_time,
         status,
         capacity,
-        subjects ( id, name ),
-        teacher:users!sessions_teacher_id_fkey ( id, name ),
-        venues ( id, name )
+        subject:subjects!sessions_subject_id_fkey ( id, name ),
+        teacher:users!sessions_teacher_fkey ( id, name ),
+        venue:venues!sessions_venue_id_fkey ( id, name )
       `
       )
       .order("start_time", { ascending: true });
 
     if (error) {
       console.error("❌ Failed to load sessions:", error.message);
+      setSessions([]);
     } else {
-      setSessions((data as Session[]) || []);
+      setSessions(data as SessionRow[]);
     }
+
     setLoading(false);
   }
 
@@ -61,11 +63,8 @@ export default function SessionsPage() {
 
   async function handleDelete(id: string) {
     if (!confirm("Are you sure you want to delete this session?")) return;
-
     const { error } = await supabase.from("sessions").delete().eq("id", id);
-    if (error) {
-      alert("❌ Failed to delete: " + error.message);
-    } else {
+    if (!error) {
       setSessions((prev) => prev.filter((s) => s.id !== id));
     }
   }
@@ -100,9 +99,9 @@ export default function SessionsPage() {
         <TableBody>
           {sessions.map((s) => (
             <TableRow key={s.id}>
-              <TableCell>{s.subjects?.name ?? "—"}</TableCell>
+              <TableCell>{s.subject?.name ?? "—"}</TableCell>
               <TableCell>{s.teacher?.name ?? "Unassigned"}</TableCell>
-              <TableCell>{s.venues?.name ?? "—"}</TableCell>
+              <TableCell>{s.venue?.name ?? "—"}</TableCell>
               <TableCell>
                 {new Date(s.start_time).toLocaleString("en-GB")}
               </TableCell>
@@ -145,7 +144,6 @@ export default function SessionsPage() {
         </TableBody>
       </Table>
 
-      {/* Modal */}
       <SessionModal
         isOpen={isModalOpen}
         onClose={() => {
