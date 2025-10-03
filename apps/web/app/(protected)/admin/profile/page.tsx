@@ -1,5 +1,5 @@
 import ProfileCard from "@/app/components/profile/ProfileCard";
 
-export default function TeacherProfilePage() {
+export default function AdminProfilePage() {
   return <ProfileCard />;
 }

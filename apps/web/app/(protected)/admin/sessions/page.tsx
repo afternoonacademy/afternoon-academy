@@ -29,6 +29,7 @@ export default function SessionsPage() {
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingSession, setEditingSession] = useState<SessionRow | null>(null);
+  const [tab, setTab] = useState<"assigned" | "unassigned">("assigned");
 
   async function loadSessions() {
     const { data, error } = await supabase
@@ -69,6 +70,11 @@ export default function SessionsPage() {
     }
   }
 
+  const filteredSessions =
+    tab === "assigned"
+      ? sessions.filter((s) => s.status !== "unassigned")
+      : sessions.filter((s) => s.status === "unassigned");
+
   if (loading) return <p>Loading sessions...</p>;
 
   return (
@@ -83,6 +89,31 @@ export default function SessionsPage() {
         </button>
       </div>
 
+      {/* Tab switcher */}
+      <div className="flex gap-4 border-b pb-2">
+        <button
+          onClick={() => setTab("assigned")}
+          className={`pb-1 ${
+            tab === "assigned"
+              ? "border-b-2 border-blue-600 font-semibold"
+              : "text-gray-500"
+          }`}
+        >
+          Assigned / Bookable
+        </button>
+        <button
+          onClick={() => setTab("unassigned")}
+          className={`pb-1 ${
+            tab === "unassigned"
+              ? "border-b-2 border-blue-600 font-semibold"
+              : "text-gray-500"
+          }`}
+        >
+          Unassigned
+        </button>
+      </div>
+
+      {/* Sessions table */}
       <Table>
         <TableHead>
           <TableRow>
@@ -97,7 +128,7 @@ export default function SessionsPage() {
           </TableRow>
         </TableHead>
         <TableBody>
-          {sessions.map((s) => (
+          {filteredSessions.map((s) => (
             <TableRow key={s.id}>
               <TableCell>{s.subject?.name ?? "—"}</TableCell>
               <TableCell>{s.teacher?.name ?? "Unassigned"}</TableCell>
@@ -111,8 +142,10 @@ export default function SessionsPage() {
               <TableCell>
                 <Badge
                   variant={
-                    s.status === "scheduled"
+                    s.status === "bookable"
                       ? "default"
+                      : s.status === "unassigned"
+                      ? "secondary"
                       : s.status === "cancelled"
                       ? "destructive"
                       : "outline"

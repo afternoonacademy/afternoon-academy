@@ -14,7 +14,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/app/components/ui/Table";
-import Image from "next/image";
 import Scheduler from "@repo/scheduler/Scheduler";
 import AvailabilityModal from "@/app/components/admin/AvailabilityModal";
 import type { SchedulerEvent, Session } from "@repo/types";
@@ -26,7 +25,6 @@ export default function TeacherPage() {
   const { bookings, loading: loadingBookings } = useBookings();
   const { availabilities, loading: loadingAvailabilities, refetch } = useAvailabilities();
 
-  const [subjects, setSubjects] = useState<string[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedAvailability, setSelectedAvailability] = useState<Availability | null>(null);
 
@@ -137,89 +135,8 @@ export default function TeacherPage() {
     await refetch();
   }
 
-  // 🔵 Load distinct subjects
-  useEffect(() => {
-    async function loadSubjects() {
-      if (!user?.id) return;
-      const { data, error } = await supabase
-        .from("sessions")
-        .select("subjects!sessions_subject_id_fkey ( name )")
-        .eq("teacher_id", user.id);
-
-      if (error) {
-        console.error("❌ Failed to load teacher subjects:", error.message);
-        return;
-      }
-
-      const unique = Array.from(
-        new Set(data.map((s: any) => s.subjects?.name).filter(Boolean))
-      );
-      setSubjects(unique);
-    }
-    loadSubjects();
-  }, [user]);
-
-  // 🔵 Avatar upload
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !user) return;
-    const filePath = `${user.id}.jpg`;
-
-    const { error: uploadError } = await supabase.storage
-      .from("avatars")
-      .upload(filePath, file, { upsert: true });
-
-    if (uploadError) {
-      console.error("❌ Avatar upload failed:", uploadError.message);
-      return;
-    }
-
-    const { data: publicUrlData } = supabase.storage
-      .from("avatars")
-      .getPublicUrl(filePath);
-
-    const publicUrl = publicUrlData.publicUrl;
-    await supabase.from("users").update({ avatar_url: publicUrl }).eq("id", user.id);
-
-    useAuthStore.setState({
-      user: { ...user, avatar_url: publicUrl },
-    });
-  };
-
   return (
     <div className="space-y-8">
-      {/* Profile Header */}
-      <section className="p-4 bg-gray-50 rounded border flex items-center gap-6">
-        <div className="flex flex-col items-center">
-          <div className="w-20 h-20 rounded-full bg-blue-100 flex items-center justify-center text-xl font-bold text-blue-700 overflow-hidden">
-            {user?.avatar_url ? (
-              <Image
-                src={user.avatar_url}
-                alt={user.name || "Teacher"}
-                width={80}
-                height={80}
-                className="rounded-full object-cover"
-              />
-            ) : (
-              user?.name?.charAt(0).toUpperCase() ?? "T"
-            )}
-          </div>
-          <label className="mt-2 text-xs px-2 py-1 bg-blue-600 text-white rounded cursor-pointer">
-            Change
-            <input type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
-          </label>
-        </div>
-
-        <div>
-          <h2 className="text-2xl font-bold">{user?.name || "Teacher"}</h2>
-          <p className="text-gray-700">✉️ {user?.email}</p>
-          <p className="text-gray-500 text-sm">Role: {user?.role}</p>
-          {subjects.length > 0 && (
-            <p className="text-gray-600 text-sm mt-1">📚 Subjects: {subjects.join(", ")}</p>
-          )}
-        </div>
-      </section>
-
       {/* Scheduler */}
       <section>
         <h3 className="text-xl font-semibold mb-4">Your Schedule</h3>

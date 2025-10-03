@@ -1,9 +1,10 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
+  darkMode: "class", // 👈 obey system/browser automatically
   content: [
-    "./app/**/*.{js,ts,jsx,tsx}",                // ✅ Next.js app router
-    "./components/**/*.{js,ts,jsx,tsx}",         // ✅ Local components
-    "../../packages/ui/src/**/*.{js,ts,jsx,tsx}" // ✅ Shared UI components
+    "./app/**/*.{js,ts,jsx,tsx}",
+    "./components/**/*.{js,ts,jsx,tsx}",
+    "../../packages/ui/src/**/*.{js,ts,jsx,tsx}",
   ],
   theme: {
     extend: {

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@repo/lib/supabase.client";
 
-interface Alert {
+interface AlertRecord {
   id: string;
   type: string;
   related_id: string;
@@ -15,8 +15,9 @@ interface Alert {
 }
 
 export default function AlertsPage() {
-  const [alerts, setAlerts] = useState<Alert[]>([]);
+  const [alerts, setAlerts] = useState<AlertRecord[]>([]);
 
+  // Load alerts
   useEffect(() => {
     async function loadAlerts() {
       const { data, error } = await supabase
@@ -24,16 +25,27 @@ export default function AlertsPage() {
         .select("*")
         .order("created_at", { ascending: false });
 
-      if (!error && data) setAlerts(data);
+      if (!error && data) {
+        setAlerts(data as AlertRecord[]);
+      }
     }
     loadAlerts();
   }, []);
 
+  // Mark alert as read
   async function markRead(id: string) {
-    await supabase.from("alerts").update({ status: "read" }).eq("id", id);
-    setAlerts((prev) =>
-      prev.map((a) => (a.id === id ? { ...a, status: "read" } : a))
-    );
+    const { error } = await supabase
+      .from("alerts")
+      .update({ status: "read" })
+      .eq("id", id);
+
+    if (!error) {
+      setAlerts((prev) =>
+        prev.map((a) =>
+          a.id === id ? { ...a, status: "read" } : a
+        )
+      );
+    }
   }
 
   return (
@@ -41,15 +53,23 @@ export default function AlertsPage() {
       <h1 className="text-2xl font-bold mb-6">🔔 Alerts</h1>
 
       <div className="space-y-4">
+        {alerts.length === 0 && (
+          <p className="text-gray-500">No alerts at the moment.</p>
+        )}
+
         {alerts.map((a) => (
           <div
             key={a.id}
             className={`p-4 border rounded-lg shadow-sm ${
-              a.status === "unread" ? "bg-yellow-50 border-yellow-300" : "bg-white"
+              a.status === "unread"
+                ? "bg-yellow-50 border-yellow-300"
+                : "bg-white"
             }`}
           >
             <p className="font-medium">{a.message}</p>
-            <p className="text-sm text-gray-500">{new Date(a.created_at).toLocaleString()}</p>
+            <p className="text-sm text-gray-500">
+              {new Date(a.created_at).toLocaleString()}
+            </p>
             {a.status === "unread" && (
               <button
                 onClick={() => markRead(a.id)}

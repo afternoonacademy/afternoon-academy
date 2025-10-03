@@ -47,3 +47,24 @@ export interface SchedulerEvent {
   end: Date;
   title: string;
   status: "available" | "bookable" | "unassigned" | "booked" | "cancelled" | "consu
+}
+  interface Venue {
+  id: string;
+  name: string;
+  address: string;
+  capacity: number;
+  cost_per_hour: number;
+  contact_name?: string;
+  contact_email?: string;
+  contact_phone?: string;
+  booking_url?: string;
+  terms_url?: string;
+  notes?: string;
+}
+
+interface VenueModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onVenueSaved: () => void;
+  editingVenue?: Venue | null;
+}

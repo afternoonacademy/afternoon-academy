@@ -64,7 +64,6 @@ export default function SessionModal({
     subject_id: "",
     duration: 1,
     capacity: 10,
-    status: "bookable" as "bookable" | "booked" | "cancelled" | "unassigned",
   });
 
   const [startDate, setStartDate] = useState("");
@@ -95,9 +94,6 @@ export default function SessionModal({
         subject_id: editingSession.subject?.id || "",
         duration: 1,
         capacity: editingSession.capacity || 10,
-        status:
-          (editingSession.status as "bookable" | "booked" | "cancelled" | "unassigned") ||
-          "bookable",
       });
 
       if (editingSession.start_time) {
@@ -113,7 +109,6 @@ export default function SessionModal({
         subject_id: "",
         duration: 1,
         capacity: 10,
-        status: "bookable",
       });
       setStartDate("");
       setStartHour("00");
@@ -183,7 +178,6 @@ export default function SessionModal({
         start_time: start.toISOString(),
         end_time: end.toISOString(),
         capacity: form.capacity,
-        status: form.status,
         availability_id: selectedAvailabilityId,
       };
 
@@ -201,30 +195,6 @@ export default function SessionModal({
       if (err instanceof Error) alert("❌ " + err.message);
     } finally {
       setSaving(false);
-    }
-  }
-
-  // Request workflow
-  async function handleRequestExtension() {
-    const startIso = combineDateTime(startDate, startHour, startMinute);
-    const start = new Date(startIso);
-    const end = new Date(start);
-    end.setHours(start.getHours() + Math.floor(form.duration));
-    if (form.duration % 1 !== 0) end.setMinutes(start.getMinutes() + 30);
-
-    const { error } = await supabase.from("availability_requests").insert([
-      {
-        teacher_id: form.teacher_id,
-        session_id: editingSession?.id,
-        requested_by: user?.id,
-        requested_start_time: start.toISOString(),
-        requested_end_time: end.toISOString(),
-      },
-    ]);
-    if (error) alert("❌ Failed to create request: " + error.message);
-    else {
-      alert("✅ Request sent to teacher.");
-      onClose();
     }
   }
 
@@ -296,7 +266,7 @@ export default function SessionModal({
             {warning && <div className="text-sm text-red-600 mt-1">{warning}</div>}
           </Field>
 
-          {/* Subject ✅ restored */}
+          {/* Subject */}
           <Field>
             <Label>Subject</Label>
             <select
@@ -338,44 +308,18 @@ export default function SessionModal({
             />
           </Field>
 
-          {/* Status */}
-          <Field>
-            <Label>Status</Label>
-            <select
-              value={form.status}
-              onChange={(e) => setForm({ ...form, status: e.target.value as any })}
-              className="w-full border px-2 py-1 rounded"
-            >
-              <option value="bookable">Bookable</option>
-              <option value="booked">Booked</option>
-              <option value="cancelled">Cancelled</option>
-              <option value="unassigned">Unassigned</option>
-            </select>
-          </Field>
-
           {/* Actions */}
           <div className="flex justify-end gap-2">
             <button type="button" onClick={onClose} className="px-4 py-2 rounded bg-gray-200 hover:bg-gray-300">
               Cancel
             </button>
-            {warning ? (
-              <button
-                type="button"
-                onClick={handleRequestExtension}
-                disabled={saving}
-                className="px-4 py-2 rounded bg-yellow-500 text-white hover:bg-yellow-600"
-              >
-                Request Extension
-              </button>
-            ) : (
-              <button
-                type="submit"
-                disabled={saving}
-                className="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
-              >
-                {saving ? "Saving..." : editingSession ? "Update" : "Create"}
-              </button>
-            )}
+            <button
+              type="submit"
+              disabled={saving}
+              className="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
+            >
+              {saving ? "Saving..." : editingSession ? "Update" : "Create"}
+            </button>
           </div>
         </form>
       </div>

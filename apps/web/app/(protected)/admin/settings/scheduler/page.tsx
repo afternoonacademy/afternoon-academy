@@ -1,48 +1,31 @@
 "use client";
 
+import { useSettings } from "@repo/hooks/useSettings";
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import { Cog6ToothIcon } from "@heroicons/react/24/outline";
-import { supabase } from "@repo/lib/supabase.client";
 
-interface SchedulerSettings {
-  min_notice_for_extension: number; // hours
-  max_extension_hours: number; // hours
-  allow_outside_availability: boolean;
+interface SchedulerRules {
+  min_notice_hours: number;
+  max_extension_hours: number;
 }
 
 export default function SchedulerSettingsPage() {
-  const router = useRouter();
-  const [settings, setSettings] = useState<SchedulerSettings>({
-    min_notice_for_extension: 6,
+  const { value: rules, saveSetting, loading } = useSettings<SchedulerRules>("request_rules", {
+    min_notice_hours: 6,
     max_extension_hours: 2,
-    allow_outside_availability: true,
   });
 
-  const [saving, setSaving] = useState(false);
+  const [localRules, setLocalRules] = useState<SchedulerRules>(rules);
 
-  // TODO: replace with supabase fetch when table exists
   useEffect(() => {
-    async function loadSettings() {
-      // placeholder: if you later create a "settings" table in Supabase, fetch it here
-      // const { data } = await supabase.from("settings").select("*").eq("key", "scheduler").single();
-      // if (data) setSettings(data.value);
-    }
-    loadSettings();
-  }, []);
+    setLocalRules(rules);
+  }, [rules]);
+
+  if (loading) return <p className="p-6">Loading scheduler settings...</p>;
 
   async function handleSave() {
-    setSaving(true);
-    try {
-      // placeholder: replace with supabase upsert
-      console.log("Saving settings:", settings);
-      // await supabase.from("settings").upsert({ key: "scheduler", value: settings });
-      alert("✅ Scheduler settings saved (placeholder).");
-    } catch (err) {
-      if (err instanceof Error) alert("❌ " + err.message);
-    } finally {
-      setSaving(false);
-    }
+    await saveSetting(localRules);
+    alert("✅ Scheduler rules updated.");
   }
 
   return (
@@ -52,78 +35,41 @@ export default function SchedulerSettingsPage() {
         Scheduler Settings
       </h1>
 
-      <section className="bg-white shadow rounded-lg p-6 space-y-6 max-w-xl">
-        {/* Min Notice */}
+      <section className="bg-white shadow rounded-lg p-6 space-y-4 max-w-lg">
         <div>
-          <label className="block font-medium mb-1">
-            Minimum Notice for Extension (hours)
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Minimum Notice (hours)
           </label>
           <input
             type="number"
-            min={1}
-            className="w-full border rounded px-3 py-2"
-            value={settings.min_notice_for_extension}
+            value={localRules.min_notice_hours}
             onChange={(e) =>
-              setSettings({
-                ...settings,
-                min_notice_for_extension: parseInt(e.target.value, 10),
-              })
+              setLocalRules({ ...localRules, min_notice_hours: parseInt(e.target.value) })
             }
+            className="w-full border rounded px-2 py-1"
           />
-          <p className="text-sm text-gray-500 mt-1">
-            Example: 6 means no extension requests allowed within 6 hours of session start.
-          </p>
         </div>
 
-        {/* Max Extension */}
         <div>
-          <label className="block font-medium mb-1">
-            Maximum Extension Allowed (hours)
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Maximum Extension (hours)
           </label>
           <input
             type="number"
-            min={1}
-            className="w-full border rounded px-3 py-2"
-            value={settings.max_extension_hours}
+            value={localRules.max_extension_hours}
             onChange={(e) =>
-              setSettings({
-                ...settings,
-                max_extension_hours: parseInt(e.target.value, 10),
-              })
+              setLocalRules({ ...localRules, max_extension_hours: parseInt(e.target.value) })
             }
+            className="w-full border rounded px-2 py-1"
           />
-          <p className="text-sm text-gray-500 mt-1">
-            Example: 2 means teachers can only be asked to extend up to 2 additional hours.
-          </p>
         </div>
 
-        {/* Allow outside availability */}
-        <div className="flex items-center gap-2">
-          <input
-            type="checkbox"
-            id="allowOutside"
-            checked={settings.allow_outside_availability}
-            onChange={(e) =>
-              setSettings({
-                ...settings,
-                allow_outside_availability: e.target.checked,
-              })
-            }
-          />
-          <label htmlFor="allowOutside" className="font-medium">
-            Allow sessions to be created outside availability
-          </label>
-        </div>
-
-        <div className="flex justify-end">
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
-          >
-            {saving ? "Saving..." : "Save Settings"}
-          </button>
-        </div>
+        <button
+          onClick={handleSave}
+          className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+        >
+          Save Scheduler Rules
+        </button>
       </section>
     </main>
   );
